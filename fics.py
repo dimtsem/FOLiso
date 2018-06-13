@@ -1,8 +1,3 @@
-# Copyright: (c) Dimitrios Tsementzis, 2017, 2018
-# License: CC BY-SA 4.0
-# Stability: experimental
-# Maintainer: dt506@stat.rutgers.edu
-
 import networkx as nx
 from networkx.classes.graph import Graph
 from networkx.classes.digraph import DiGraph
@@ -129,7 +124,10 @@ class FiniteInverseCategory(MultiDiGraph):
     *) The __init__s have been made very long to emulate the kind of "type-checking" that is necessary in order
        to interpret these structures into dependent type theory.
     '''
-    def __init__(self, pretdamg, relations = [], data=None, **attr):
+    def __init__(self, pretdamg, relations = [], ficname='L', data=None, **attr):
+        # the name of the fic
+        self.ficname = ficname
+        # the underlying graph of the fic
         self.pretdamg = pretdamg
         # test(s) to determine if the underlying graph is suitable, raise error if not
         self.wellformed = isdag(self.pretdamg)
@@ -428,8 +426,12 @@ class FICStructure(FiniteInverseCategory):
 
     '''
     def __init__(self, fic, obdata = defaultdict(lambda : []),\
-                            mordata = defaultdict(lambda : [])):
+                            mordata = defaultdict(lambda : []),strucname='M'):
+        # define the name of the functor representing the L-structure
+        self.strucname = strucname
+        # define the fic L on which the L-structure is a functor
         self.signature = fic
+        # get the data for the object part of the functor
         self.obval = obdata
         # check that the values of the functor on objects/morphisms are well-formed 
         # by checking if every value refers to an object/morphism in the signature, 
@@ -526,6 +528,32 @@ class FICStructure(FiniteInverseCategory):
         yhat = self.yoneda(obj)
         yhat.obval[obj] = []
         return yhat
+    
+    def collage(self):
+        '''
+        Returns the "collage" (or "fic extension") L*M of L with the L-structure M.
+        
+        Mathematically, the collage L*M is defined as the fic with ob(L*M) = ob(L) + {K_M}
+        such that yK_M \iso M, i.e. the fic which adds one object K_M to L whose cosieve is 
+        isomorphic to M
+        
+        For more details see Tsementzis-Weaver, "Finite Inverse Categories as Signatures" (2017)
+        '''
+        underlying = self.signature.pretdamg
+        # the name of the new object...
+        Knew = self.signature.ficname+self.strucname
+        # ...and make sure that the name is fresh
+        while Knew in self.signature.objects:
+            Knew = Knew+'*'     
+        underlying.add_edges_from([(Knew,K,f) for K in [K for K in self.signature.objects if self.obval[K]]
+                                              for f in self.obval[K]])
+        relations = [((Knew,self.signature.cod[g[2]],f+g[2]),(Knew,self.signature.cod[g[2]],x))
+                     for A in [A for A in self.signature.objects if self.obval[A]]
+                     for f in self.obval[A]
+                     for g in self.signature.coslice[A]
+                     for x in self.obval[self.signature.cod[g[2]]]
+                     if self.morval[g].app[f] == x]
+        return FiniteInverseCategory(underlying,relations, ficname=self.signature.ficname+'*'+self.strucname)
     
     def Interp(self):
         '''
