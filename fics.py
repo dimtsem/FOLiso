@@ -129,7 +129,8 @@ class FiniteInverseCategory(MultiDiGraph):
         self.ficname = ficname
         # the underlying graph of the fic
         self.underlying = damg
-        # test(s) to determine if the underlying graph is suitable, raise error if not
+        # test(s) to determine if the underlying graph is indeed the underlying graph of a finite inverse category, i.e. a dag,
+        # and raise error if not
         self.wellformed = isdag(self.underlying)
         if not self.wellformed:
             raise ValueError('Underlying graph is not a da(m)g')
@@ -144,28 +145,32 @@ class FiniteInverseCategory(MultiDiGraph):
         self.cod = {}
         for morphism in self.morphisms:
             self.cod[morphism[2]] = morphism[1]
+        # define the "length" of a morphism...
         self.morlen = {}
-        # each primitive morphism has length 1
+        # ...where each primitive morphism has length 1
         for morphism in self.morphisms:
             self.morlen[morphism] = 1
-        # add all the composable morphisms to yield the free fic on the underlying damg
-        # NB: we use diagrammatic ordering!
-        composed = defaultdict(lambda : False)
-        # this is the composition function, encoded as a defaultdict
-        self.comp = defaultdict(lambda : None)
         # add to state any relations given as input...
         self.relations = relations
         self.isequalto = defaultdict(lambda : [])
-        # ...and and to state a dictionary that will keep track of the set of morphisms a morphism is equal to
+        # ...and add to state a dictionary that will keep track of the set of morphisms a morphism is equal to
         for rel in self.relations:
             self.isequalto[rel[0]].append(rel[1])
             self.isequalto[rel[1]].append(rel[0])
+        # freely add all the composable morphisms to yield the free fic on the underlying damg
+        # NB: we use diagrammatic ordering!
+        composed = defaultdict(lambda : False)
+        # this is the composition function, encoded as a defaultdict...
+        self.comp = defaultdict(lambda : None)
+        # ...and now we freely add all composites by...
         while True:
             complete = True
+            # ...taking all composable pairs currently available...
             composables = [(f,g) for f in self.morphisms for g in self.morphisms 
                            if self.dom[g[2]] == self.cod[f[2]]]
             for morphism in composables:
                 if not composed[morphism]:
+                    # ...and defining their composite and its properties
                     composite = (self.dom[morphism[0][2]],self.cod[morphism[1][2]],morphism[0][2]+morphism[1][2])
                     self.morphisms.append(composite)
                     self.morphism_names.append(composite[2])
@@ -175,16 +180,16 @@ class FiniteInverseCategory(MultiDiGraph):
                     self.morlen[composite] = self.morlen[morphism[0]] + self.morlen[morphism[1]]
                     composed[morphism] = True
                     complete = False
+            # this will break the while loop if no composable pairs are left, which is guaranteed to happen because the
+            # underlying graph is a dag
             if complete:
                 break
-        # check if any meaningless relations were given as input (this has to happen after "freely adding" the composites)
+        # check if any meaningless relations were given as input (this has to happen after "freely adding" the composites above)
         for rel in self.relations:
             if rel[0] not in self.morphisms or rel[1] not in self.morphisms:
-                raise ValueError(rel, ' is invalid because one of the morphisms is not in the fic. '
-                                      ' The relation was ignored.')
+                raise ValueError(rel, ' is invalid because one of the morphisms is not in the fic. ')
             elif (self.cod[rel[0][2]] != self.cod[rel[1][2]]) or (self.dom[rel[0][2]] != self.dom[rel[1][2]]):
-                raise ValueError(rel, ' is invalid because these two morphisms have distinct domains or codomains. '
-                                 ' It was ignored.')
+                raise ValueError(rel, ' is invalid because these two morphisms have distinct domains or codomains. ')
         # propagate the given relations through all composites
         for length in range(1,max(self.morlen.values())):
             composables = [(f,g) for f in self.morphisms for g in self.morphisms 
@@ -194,7 +199,7 @@ class FiniteInverseCategory(MultiDiGraph):
                     self.isequalto[self.comp[pair]].append(self.comp[(f,pair[1])])
                 for f in self.isequalto[pair[1]]:
                     self.isequalto[self.comp[pair]].append(self.comp[(pair[0],f)])
-        # obtain equality classes for morphisms (by the transitive closure of the self.isequalto relation)
+        # obtain equality classes for morphisms (as the transitive closure of the self.isequalto relation)
         self.eqclass = {}
         seen = defaultdict(lambda : False)
         for f in self.morphisms:
@@ -208,13 +213,15 @@ class FiniteInverseCategory(MultiDiGraph):
                 # finally, set the equality class of every arrow f is equal to to be the same as f      
                 for g in self.eqclass[f]:
                     self.eqclass[g] = self.eqclass[f]
+        # define the "pre-hom sets" of the fic, i.e. the set of all names of morphisms between any two objects,
+        # where equal morphisms with distinct names are treated as distinct
         self.Hom = defaultdict(lambda : [])
         for A,B in [(x,y) for x in self.objects for y in self.objects]:
             self.Hom[(A,B)] = [f for f in self.morphisms 
                               if (self.dom[f[2]] == A) & (self.cod[f[2]] == B)]
-        # add to state a list of the objects sorted by level
+        # a list of the objects sorted by level
         self.objectsbylevel = sorted(self.objects,key = self.Reedy_level)
-        # add to state a {object:list of morphisms with object as domain} dictionary
+        # a {object:list of morphisms with object as domain} dictionary called self.cosieve
         # which preserves a fixed order on the morphisms (for each object A, self.cosieve[A]
         # includes all morphisms with domain A, including pairs that are equal to each other)
         self.cosieve = {}
@@ -230,17 +237,18 @@ class FiniteInverseCategory(MultiDiGraph):
                 for g in self.eqclass[f]:
                     self.mortovar[g] = f
                     visited[g] = True
-                visited[f] = True 
-        # add to state a {object:list of morphisms with object as domain} dictionary except now
-        # we add only one representative for each equality class of morphisms
+                visited[f] = True
+        # define the "hom sets" of the fic, i.e. the set of all morphisms between any two objects
         self.Hom_e = defaultdict(lambda : [])
         for A,B in [(x,y) for x in self.objects for y in self.objects]:
             self.Hom_e[(A,B)] = list(set([self.mortovar[f] for f in self.morphisms 
                               if (self.dom[f[2]] == A) & (self.cod[f[2]] == B)]))
+        # a {object:list of morphisms with object as domain} dictionary called self.coslice except now
+        # we add only one representative for each equality class of morphisms
         self.coslice = defaultdict(lambda : [])
         seen = defaultdict(lambda : False)
         for A in self.objectsbylevel:
-            for K in sorted(self.objectsbylevel, key=lambda x : -self.Reedy_level(x)):#self.objectsbylevel:
+            for K in sorted(self.objectsbylevel, key=lambda x : -self.Reedy_level(x)):
                 for f in self.Hom_e[(A,K)]:
                     if not seen[f]:
                         self.coslice[A].append(f)
