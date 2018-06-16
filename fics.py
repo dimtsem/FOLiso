@@ -86,10 +86,10 @@ class FiniteInverseCategory(MultiDiGraph):
     no non-identity endomorphisms.
 
     An alternative definition is as a pair (G,comp) where G = (V,E) is a finite transitive directed 
-    acyclic  multigraph (tdamg) and comp is an associative binary operation on E that takes two
+    acyclic  multigraph (damg) and comp is an associative binary operation on E that takes two
     "composable" edges to their "composite". This is the definition on which this implementation is based.
 
-    It is important to note that every fic has an underlying tdamg but for any given tdamg there are
+    It is important to note that every fic has an underlying damg but for any given damg there are
     multiple non-isomorphic fic structures we can put on it.
     
     The focus of this implementation is to allow every fic (and fic-structure/homomorphisms) to be "interpreted"
@@ -104,7 +104,7 @@ class FiniteInverseCategory(MultiDiGraph):
     
     --Initialization Parameters--
     
-    pretdamg: the underlying graph of the fic, which must be a da(m)g, otherwise __init__ will throw an error.
+    damg: the underlying graph of the fic, which must be a da(m)g, otherwise __init__ will throw an error.
     
     relations: a list of tuples of the form ((domain,codomain,f),(domain,codomain,g)) representing relations 
                between morphisms f,g: domain -> codomain. Errors will be thrown if f,g are not (composites of)
@@ -124,18 +124,18 @@ class FiniteInverseCategory(MultiDiGraph):
     *) The __init__s have been made very long to emulate the kind of "type-checking" that is necessary in order
        to interpret these structures into dependent type theory.
     '''
-    def __init__(self, pretdamg, relations = [], ficname='L', data=None, **attr):
+    def __init__(self, damg, relations = [], ficname='L', data=None, **attr):
         # the name of the fic
         self.ficname = ficname
         # the underlying graph of the fic
-        self.pretdamg = pretdamg
+        self.underlying = damg
         # test(s) to determine if the underlying graph is suitable, raise error if not
-        self.wellformed = isdag(self.pretdamg)
+        self.wellformed = isdag(self.underlying)
         if not self.wellformed:
             raise ValueError('Underlying graph is not a da(m)g')
         # define objects and morphisms of the category to be those of the underlying graph
-        self.objects = list(self.pretdamg.nodes)
-        self.morphisms = list(self.pretdamg.edges)
+        self.objects = list(self.underlying.nodes)
+        self.morphisms = list(self.underlying.edges)
         self.morphism_names = [morphism[2] for morphism in self.morphisms]
         # define domain and codomain functions to extract from morphisms
         self.dom = {}
@@ -539,7 +539,7 @@ class FICStructure(FiniteInverseCategory):
         
         For more details see Tsementzis-Weaver, "Finite Inverse Categories as Signatures" (2017)
         '''
-        underlying = self.signature.pretdamg
+        underlying = self.signature.underlying
         # the name of the new object...
         Knew = self.signature.ficname+self.strucname
         # ...and make sure that the name is fresh
@@ -654,6 +654,8 @@ class FICStructureHomomorphism(FICStructure):
                 if not TypedFunction.funextequal(Mfa_KK,a_KNf):
                     raise ValueError('Not a natural transformation: '+str(Mfa_KK)+' '
                                      'and '+str(a_KNf)+' do not commute.')
+        
+        
     
         
                 
