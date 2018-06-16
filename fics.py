@@ -213,20 +213,6 @@ class FiniteInverseCategory(MultiDiGraph):
                 # finally, set the equality class of every arrow f is equal to to be the same as f      
                 for g in self.eqclass[f]:
                     self.eqclass[g] = self.eqclass[f]
-        # define the "pre-hom sets" of the fic, i.e. the set of all names of morphisms between any two objects,
-        # where equal morphisms with distinct names are treated as distinct
-        self.Hom = defaultdict(lambda : [])
-        for A,B in [(x,y) for x in self.objects for y in self.objects]:
-            self.Hom[(A,B)] = [f for f in self.morphisms 
-                              if (self.dom[f[2]] == A) & (self.cod[f[2]] == B)]
-        # a list of the objects sorted by level
-        self.objectsbylevel = sorted(self.objects,key = self.Reedy_level)
-        # a {object:list of morphisms with object as domain} dictionary called self.cosieve
-        # which preserves a fixed order on the morphisms (for each object A, self.cosieve[A]
-        # includes all morphisms with domain A, including pairs that are equal to each other)
-        self.cosieve = {}
-        for A in self.objectsbylevel:
-            self.cosieve[A] = [f for K in self.objectsbylevel for f in self.Hom[(A,K)]]
         # a dictionary picking a canonical representative for each equality class of morphisms,
         # useful for the interpretation of fics.
         self.mortovar = {}
@@ -239,17 +225,18 @@ class FiniteInverseCategory(MultiDiGraph):
                     visited[g] = True
                 visited[f] = True
         # define the "hom sets" of the fic, i.e. the set of all morphisms between any two objects
-        self.Hom_e = defaultdict(lambda : [])
+        self.Hom = defaultdict(lambda : [])
         for A,B in [(x,y) for x in self.objects for y in self.objects]:
-            self.Hom_e[(A,B)] = list(set([self.mortovar[f] for f in self.morphisms 
+            self.Hom[(A,B)] = list(set([self.mortovar[f] for f in self.morphisms 
                               if (self.dom[f[2]] == A) & (self.cod[f[2]] == B)]))
-        # a {object:list of morphisms with object as domain} dictionary called self.coslice except now
-        # we add only one representative for each equality class of morphisms
+        # a list of the objects sorted by level
+        self.objectsbylevel = sorted(self.objects,key = self.Reedy_level)
+        # a {object:list of morphisms with object as domain} dictionary called self.coslice
         self.coslice = defaultdict(lambda : [])
         seen = defaultdict(lambda : False)
         for A in self.objectsbylevel:
             for K in sorted(self.objectsbylevel, key=lambda x : -self.Reedy_level(x)):
-                for f in self.Hom_e[(A,K)]:
+                for f in self.Hom[(A,K)]:
                     if not seen[f]:
                         self.coslice[A].append(f)
                         seen[f] = True
@@ -509,8 +496,8 @@ class FICStructure(FiniteInverseCategory):
             raise ValueError('Object '+str(obj)+' not in signature.')
         # initialize the dictionary for the value of y(obj) on objects
         obdata = {}
-        for K in [K for K in self.signature.objects if self.signature.Hom_e[(obj,K)]]:
-            obdata[K] = self.signature.Hom_e[(obj,K)]
+        for K in [K for K in self.signature.objects if self.signature.Hom[(obj,K)]]:
+            obdata[K] = self.signature.Hom[(obj,K)]
         # add the identity morphism -- NB: this step is necessary due to the current
         # design choice not to add identity morphisms by hand.
         obdata[obj] = ['id_'+str(obj)]
