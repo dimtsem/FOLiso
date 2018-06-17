@@ -529,7 +529,7 @@ class FICStructure(FiniteInverseCategory):
         Returns the "collage" (or "fic extension") L*M of L with the L-structure M.
         
         Mathematically, the collage L*M is defined as the fic with ob(L*M) = ob(L) + {K_M}
-        such that yK_M \iso M, i.e. the fic which adds one object K_M to L whose cosieve is 
+        such that yK_M \iso M, i.e. the fic which adds one object K_M to L whose coslice is 
         isomorphic to M
         
         For more details see Tsementzis-Weaver, "Finite Inverse Categories as Signatures" (2017)
