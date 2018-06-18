@@ -298,7 +298,7 @@ class FiniteInverseCategory(MultiDiGraph):
         else:
             return max(list(map(self.Reedy_level,[A for A in self.objects if self.Hom[(K,A)]]))) + 1
         
-    def extend(self,morphisms,relations, newficname=None):
+    def extend(self, morphisms,relations, objects = None, newficname=None):
         '''
         Extends a fic by a list of morphisms and relations involving those new morphisms, without changing the 
         underlying fic.
@@ -308,6 +308,7 @@ class FiniteInverseCategory(MultiDiGraph):
         If newficname is not given then the new extended fic is given the same name as the fic it extends.
         '''
         underlying = self.underlying
+        underlying.add_nodes_from(objects)
         underlying.add_edges_from(morphisms)
         newrelations = self.relations + relations
         if newficname is None:
@@ -325,7 +326,7 @@ class FiniteInverseCategory(MultiDiGraph):
     def Interp(self,K,f=None):
         '''
         Takes a an object K of the fic and returns a string representing its type
-        when it is regarded as a type in the context given by the proper cosieve on K.
+        when it is regarded as a type in the context given by the proper coslice on K.
         
         This is a proof-assistant-agnostic "interpretation" that can then be used to 
         produce correct type expressions in each particular vernacular.
