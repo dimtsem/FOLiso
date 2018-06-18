@@ -297,7 +297,23 @@ class FiniteInverseCategory(MultiDiGraph):
             return 0
         else:
             return max(list(map(self.Reedy_level,[A for A in self.objects if self.Hom[(K,A)]]))) + 1
-    
+        
+    def extend(self,morphisms,relations, newficname=None):
+        '''
+        Extends a fic by a list of morphisms and relations involving those new morphisms, without changing the 
+        underlying fic.
+        
+        (An equivalent operation can be performed using a series of collages.)
+        
+        If newficname is not given then the new extended fic is given the same name as the fic it extends.
+        '''
+        underlying = self.underlying
+        underlying.add_edges_from(morphisms)
+        newrelations = self.relations + relations
+        if newficname is None:
+            newficname = self.ficname
+        return FiniteInverseCategory(underlying,relations,newficname)
+        
     def makevar(self, morphism):
         '''
         Takes a morphism in the signature and returns a variable expression.
