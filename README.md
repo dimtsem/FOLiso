@@ -18,6 +18,8 @@ Currently, the development allows one to define any finite inverse category and 
 
 fics.py -- contains the implementation of finite inverse categories
 
+hsig.py -- contains the implementation of h-signatures
+
 glob.py -- a script to produce the n-truncated type of globular types, as an example
 
 sst.py -- a script to produce the n-truncated type of semi-simplicial types, as an example
